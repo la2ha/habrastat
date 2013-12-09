@@ -1,0 +1,27 @@
+/bootstrap/compiled.php
+/vendor
+_ide_helper.php
+composer.phar
+composer.lock
+.DS_Store
+Thumbs.db
+
+# Configuration
+/app/config/local
+/app/config/staging
+/app/config/production
+/app/habra_pages
+
+.idea/
+
+_ide_helpers.php
+
+# OS or Editor folders
+.DS_Store
+Thumbs.db
+.cache
+.project
+.settings
+.tmproj
+*.esproj
+nbproject
