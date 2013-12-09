@@ -29,7 +29,7 @@ $app->redirectIfTrailingSlash();
 $env = $app->detectEnvironment(array(
 
 	'local' => array('mbp-anton'),
-	'fornex' => array('hivede2-2547'),
+	'public' => array('La2ha-public'),
 
 ));
 
