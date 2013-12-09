@@ -243,96 +243,118 @@ class habraparser extends Command
 
     protected function getPostData($id, $pageHtml, $pageSize)
     {
-        $this->info("Получение данных поста #$id");
-        $html = new Htmldom();
-        $html->load($pageHtml);
-        $post_html = $html->find('.post', 0);
-        if (!$post_html) {
-            $this->info('Пост в черновиках');
-            $html->clear();
-            unset($html);
-            return false;
-        }
-        $data             = array();
-        $data['size']     = $pageSize;
-        $data['id']       = $id;
-        $data['title']    = $post_html->find('span.post_title', 0)->plaintext;
-        $data['hubs_str'] = array();
-        foreach ($post_html->find('.hubs', 0)->find('.hub') as $hub)
-            $data['hubs_str'][] = $hub->plaintext;
-        $data['content']  = $post_html->find('.content', 0)->innertext;
-        $data['tags_str'] = array();
-        $ul_tags=$post_html->find('ul.tags', 0);
-        echo $ul_tags->."\n";
-        foreach ($ul_tags->find('a[rel=tag]') as $tag)
-            $data['tags_str'][] = $tag->plaintext;
-
-        $data['views']    = $post_html->find('.infopanel .pageviews', 0)->plaintext;
-        $data['favorite'] = $post_html->find('.infopanel .favs_count', 0)->plaintext;
-        $author_str       = $post_html->find('.infopanel .author a', 0);
-        if (!$author_str) {
-            $this->info('Статья не сохранена т.к. влом переделывать для rss постов');
-            $html->clear();
-            unset($html);
-            return false;
-        }
-
-        $data['author_str'] = $author_str->plaintext;
-        $post_html->clear();
-
-        $data['comments'] = array();
-        $comments_html    = $html->find('#comments', 0);
-        if (!$comments_html) {
-            $html->clear();
-            unset($html);
-            return $data;
-        }
-        foreach ($comments_html->find('.comment_body') as $comment_body) {
-            try {
-                if ($comment_body->find('.author_banned', 0)) continue;
-                $author_str = $comment_body->find('.info .username', 0);
-                if (!$author_str) new Exception();
-                $coment_data['author_str'] = $author_str->plaintext;
-
-                $c_id = $comment_body->find('.info', 0);
-                if (!$c_id) new Exception();
-                $coment_data['id'] = $c_id->rel;
-
-                $date_str = $comment_body->find('.info time', 0);
-                if (!$date_str) new Exception();
-                $coment_data['date_str'] = $date_str->plaintext;
-
-                $parent                   = $comment_body->find('.to_parent', 0);
-                $coment_data['parent_id'] = 0;
-                if ($parent)
-                    $coment_data['parent_id'] = $parent->getAttribute('data-parent_id');
-
-                $score = $comment_body->find('.score', 0);
-                if (!$score) new Exception();
-                $score_info = $score->title;
-                preg_match('#\d+:.*?(\d+).*?(\d+)#', $score_info, $matches);
-                $coment_data['score_plus']  = $matches[1];
-                $coment_data['score_minus'] = $matches[2];
-                $coment_data['score_total'] = $matches[1] - $matches[2];
-
-                $message = $comment_body->find('.message', 0);
-                if (!$message) new Exception();
-                $coment_data['message'] = $comment_body->find('.message', 0)->innertext;
-                $data['comments'][]     = $coment_data;
-                $comment_body->clear();
-                unset($comment_body);
-//                echo $coment_data['date_str'];
-            } catch (Exception $e) {
-                $comment_body->clear();
-                unset($comment_body);
+        try {
+            $this->info("Получение данных поста #$id");
+            $html = new Htmldom();
+            $html->load($pageHtml);
+            $post_html = $html->find('.post', 0);
+            if (!$post_html) {
+                $this->info('Пост в черновиках');
+                $html->clear();
+                unset($html);
+                return false;
             }
+            $data         = array();
+            $data['size'] = $pageSize;
+            $data['id']   = $id;
+
+            $title = $post_html->find('span.post_title', 0);
+            if (!$title)
+                throw new Exception();
+            $data['title'] = $title->plaintext;
+
+            $hubs = $post_html->find('.hubs', 0);
+            if (!$hubs)
+                throw new Exception();
+            $data['hubs_str'] = array();
+            foreach ($hubs->find('.hub') as $hub)
+                $data['hubs_str'][] = $hub->plaintext;
+            $content = $post_html->find('.content', 0);
+            if (!$content)
+                throw new Exception();
+            $data['content'] = $content->innertext;
+
+            $data['tags_str'] = array();
+            $ul_tags          = $post_html->find('ul.tags', 0);
+            if ($ul_tags)
+                foreach ($ul_tags->find('a[rel=tag]') as $tag)
+                    $data['tags_str'][] = $tag->plaintext;
+
+            $views = $post_html->find('.infopanel .pageviews', 0);
+            if (!$views)
+                throw new Exception();
+            $data['views'] = $views->plaintext;
+
+            $favs_count = $post_html->find('.infopanel .favs_count', 0);
+            if (!$favs_count)
+                throw new Exception;
+            $data['favorite'] = $favs_count->plaintext;
+
+            $author_str = $post_html->find('.infopanel .author a', 0);
+            if (!$author_str)
+                throw new Exception();
+            $data['author_str'] = $author_str->plaintext;
+
+            $post_html->clear();
+
+            $data['comments'] = array();
+            $comments_html    = $html->find('#comments', 0);
+            if (!$comments_html) {
+                $html->clear();
+                unset($html);
+                return $data;
+            }
+            foreach ($comments_html->find('.comment_body') as $comment_body) {
+                try {
+                    if ($comment_body->find('.author_banned', 0)) continue;
+                    $author_str = $comment_body->find('.info .username', 0);
+                    if (!$author_str) new Exception();
+                    $coment_data['author_str'] = $author_str->plaintext;
+
+                    $c_id = $comment_body->find('.info', 0);
+                    if (!$c_id) new Exception();
+                    $coment_data['id'] = $c_id->rel;
+
+                    $date_str = $comment_body->find('.info time', 0);
+                    if (!$date_str) new Exception();
+                    $coment_data['date_str'] = $date_str->plaintext;
+
+                    $parent                   = $comment_body->find('.to_parent', 0);
+                    $coment_data['parent_id'] = 0;
+                    if ($parent)
+                        $coment_data['parent_id'] = $parent->getAttribute('data-parent_id');
+
+                    $score = $comment_body->find('.score', 0);
+                    if (!$score) new Exception();
+                    $score_info = $score->title;
+                    preg_match('#\d+:.*?(\d+).*?(\d+)#', $score_info, $matches);
+                    $coment_data['score_plus']  = $matches[1];
+                    $coment_data['score_minus'] = $matches[2];
+                    $coment_data['score_total'] = $matches[1] - $matches[2];
+
+                    $message = $comment_body->find('.message', 0);
+                    if (!$message) new Exception();
+                    $coment_data['message'] = $comment_body->find('.message', 0)->innertext;
+                    $data['comments'][]     = $coment_data;
+                    $comment_body->clear();
+                    unset($comment_body);
+                } catch (Exception $e) {
+                    $comment_body->clear();
+                    unset($comment_body);
+                }
+            }
+            $comments_html->clear();
+            $html->clear();
+            unset($html);
+            echo get_file_size(memory_get_usage(true)) . "\n";
+            $this->info("Пост #$id сохранен");
+            return $data;
+        } catch (Exception $e) {
+            $html->clear();
+            unset($html);
+            $this->error('Ошибка получения данных');
+            return false;
         }
-        $comments_html->clear();
-        $html->clear();
-        unset($html);
-        echo get_file_size(memory_get_usage(true)) . "\n";
-        $this->info("Пост #$id сохранен");
-        return $data;
     }
 
 
