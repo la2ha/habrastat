@@ -18,6 +18,7 @@ class CreatePostsTable extends Migration
             $table->integer('author_id')->unsigned();
             $table->string('title')->nullable();
             $table->mediumText('content');
+            $table->dateTime('date');
             $table->integer('views')->nullable();
             $table->integer('favorite')->nullable();
             $table->integer('size')->nullable();

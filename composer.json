@@ -11,7 +11,8 @@
         "leafo/lessphp": "*",
         "yangqi/htmldom": "dev-master",
         "way/generators": "dev-master",
-        "chuyskywalker/rolling-curl": "*"
+        "chuyskywalker/rolling-curl": "*",
+        "vespakoen/menu": "dev-master"
 
     },
 	"autoload": {

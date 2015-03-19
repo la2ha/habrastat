@@ -126,7 +126,7 @@ class habraparser extends Command
             $rollingCurl->setCallback(function (\RollingCurl\Request $request, \RollingCurl\RollingCurl $rollingCurl) {
                 $this->getPostsCallback($request);
                 unset($request, $rollingCurl);
-//        })->execute();
+//        })->execute(); // для одного потока
             })->setSimultaneousLimit(7)->execute();
             unset($rollingCurl);
         };
@@ -183,6 +183,7 @@ class habraparser extends Command
         $post->id    = (int)trim($postData['id']);
         $post->title = trim($postData['title']);
 //        $post->content   = trim($postData['content']);
+        $post->date      = $postData['date'];
         $post->views     = (int)trim($postData['views']);
         $post->favorite  = (int)trim($postData['favorite']);
         $post->size      = (int)trim($postData['size']);
@@ -229,7 +230,8 @@ class habraparser extends Command
 
             $comment->parent_id   = $commentData['parent_id'];
             $comment->message     = trim($commentData['message']);
-            $comment->date_str    = trim($commentData['date_str']);
+            $comment->date    = $commentData['date'];
+            $comment->changed   = $commentData['changed'];
             $comment->score_total = (int)trim($commentData['score_total']);
             $comment->score_minus = (int)trim($commentData['score_minus']);
             $comment->score_plus  = (int)trim($commentData['score_plus']);
@@ -257,6 +259,15 @@ class habraparser extends Command
             $data         = array();
             $data['size'] = $pageSize;
             $data['id']   = $id;
+
+            $str_date = $post_html->find('div.published', 0);
+            if (!$str_date)
+                throw new Exception();
+            $date = $this->getDateFromStr(trim($str_date->plaintext));
+            if (!$date)
+                throw new Exception();
+            $data['date'] = $date;
+
 
             $title = $post_html->find('span.post_title', 0);
             if (!$title)
@@ -317,7 +328,16 @@ class habraparser extends Command
 
                     $date_str = $comment_body->find('.info time', 0);
                     if (!$date_str) new Exception();
-                    $coment_data['date_str'] = $date_str->plaintext;
+
+                    $date = $this->getDateFromStr(trim($date_str->plaintext));
+                    if (!$date)
+                        throw new Exception();
+                    $coment_data['date'] = $date;
+
+                    $changed = false;
+                    if ($date_str->find('.time_changed', 0))
+                        $changed = true;
+                    $coment_data['changed'] = $changed;
 
                     $parent                   = $comment_body->find('.to_parent', 0);
                     $coment_data['parent_id'] = 0;
@@ -327,10 +347,10 @@ class habraparser extends Command
                     $score = $comment_body->find('.score', 0);
                     if (!$score) new Exception();
                     $score_info = $score->title;
-                    preg_match('#\d+:.*?(\d+).*?(\d+)#', $score_info, $matches);
-                    $coment_data['score_plus']  = $matches[1];
-                    $coment_data['score_minus'] = $matches[2];
-                    $coment_data['score_total'] = $matches[1] - $matches[2];
+                    preg_match('#\d+:.*?([0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?).*?([0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)#', $score_info, $matches);
+                    $coment_data['score_plus']  = (int)$matches[1];
+                    $coment_data['score_minus'] = (int)$matches[3];
+                    $coment_data['score_total'] = $matches[1] - $matches[3];
 
                     $message = $comment_body->find('.message', 0);
                     if (!$message) new Exception();
@@ -358,8 +378,32 @@ class habraparser extends Command
     }
 
 
-    protected function updatePost($post, \RollingCurl\Request $response_text)
+    protected function getDateFromStr($str)
     {
+        $months = array(
+            'января'   => '01',
+            'февраля'  => '02',
+            'марта'    => '03',
+            'апреля'   => '04',
+            'мая'      => '05',
+            'июня'     => '06',
+            'июля'     => '07',
+            'августа'  => '08',
+            'сентября' => '09',
+            'октября'  => 10,
+            'ноября'   => 11,
+            'декабря'  => 12,
+        );
+        if (preg_match('#(\d+) ([января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря]+) в (\d{2}:\d{2})#', $str, $matches))
+            return date('Y') . '-' . $months[$matches[2]] . '-' . $matches[1] . ' ' . $matches[3];
+        elseif (preg_match('#(\d+) ([января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря]+) (\d+) в (\d{2}:\d{2})#', $str, $matches))
+            return $matches[3] . '-' . $months[$matches[2]] . '-' . $matches[1] . ' ' . $matches[4];
+        elseif (preg_match('#вчера в (\d{2}:\d{2})#', $str, $matches))
+            return date("Y-m-d", time() - 86400) . ' ' . $matches[1];
+        elseif (preg_match('#сегодня в (\d{2}:\d{2})#', $str, $matches))
+            return date("Y-m-d") . ' ' . $matches[1];
+        else
+            return false;
 
     }
 

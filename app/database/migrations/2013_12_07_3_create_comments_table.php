@@ -19,7 +19,8 @@ class CreateCommentsTable extends Migration
             $table->integer('author_id')->unsigned();
             $table->integer('parent_id')->nullable();
             $table->text('message');
-            $table->string('date_str');
+            $table->dateTime('date');
+            $table->boolean('changed');
             $table->integer('score_total')->nullable();
             $table->integer('score_minus')->nullable();
             $table->integer('score_plus')->nullable();

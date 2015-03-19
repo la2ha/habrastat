@@ -12,11 +12,11 @@ class AddForeignKeys extends Migration {
 	public function up()
     {
         Schema::table('posts', function ($table) {
-            $table->foreign('author_id')->references('id')->on('authors')->onDelete('cascade')->on_update('cascade');
+            $table->foreign('author_id')->references('id')->on('authors')->onDelete('cascade');
         });
         Schema::table('comments', function ($table) {
-            $table->foreign('post_id')->references('id')->on('posts');
-            $table->foreign('author_id')->references('id')->on('authors')->onDelete('cascade')->on_update('cascade');
+            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
+            $table->foreign('author_id')->references('id')->on('authors')->onDelete('cascade');
         });
     }
 

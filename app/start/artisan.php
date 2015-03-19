@@ -11,4 +11,5 @@
 |
 */
 Artisan::add(new habraparser);
+Artisan::add(new domain);
 DB::disableQueryLog();

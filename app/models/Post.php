@@ -27,4 +27,19 @@ class Post extends Eloquent
     {
         return $this->belongsToMany('Hub');
     }
+
+    public static function countPosts($time = false)
+    {
+        $cacheKey = 'countPosts_time-' . $time;
+        if (!$time)
+            $cacheTime = 60 * 24;
+
+//        if (Cache::has($cacheKey))
+//            return Cache::get($cacheKey);
+        $count = self::count();
+        Cache::put($cacheKey, $count, $cacheTime);
+
+        return $count;
+
+    }
 }
